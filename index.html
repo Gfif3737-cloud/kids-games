@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>МетроПомощник</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a1f2e;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 15px auto;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+        }
+        .btn-lost { background: #e74c3c; }
+        .btn-route { background: #3498db; }
+        .btn-assist { background: #2ecc71; }
+        .result {
+            background: rgba(255,255,255,0.15);
+            padding: 20px;
+            border-radius: 20px;
+            margin-top: 25px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>🚇 МетроПомощник</h1>
+    <p>Московский метрополитен</p>
+
+    <button class="btn-lost" id="btnLost">🔍 Я потерялся</button>
+    <button class="btn-route" id="btnRoute">🧭 Я не знаю, куда идти</button>
+    <button class="btn-assist" id="btnAssist">♿ Помочь дойти</button>
+
+    <div id="result" class="result" style="display:none;"></div>
+
+    <script>
+        const stations = [
+            { name: "Комсомольская", lat: 55.7753, lon: 37.6556, exits: "Ленинградский, Ярославский, Казанский вокзалы" },
+            { name: "Курская", lat: 55.7579, lon: 37.6580, exits: "Курский вокзал" },
+            { name: "Киевская", lat: 55.7436, lon: 37.5665, exits: "Киевский вокзал" },
+            { name: "Белорусская", lat: 55.7766, lon: 37.5832, exits: "Белорусский вокзал" },
+            { name: "Павелецкая", lat: 55.7308, lon: 37.6376, exits: "Павелецкий вокзал" }
+        ];
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function findNearestStation(lat, lon) {
+            let nearest = null, minDist = Infinity;
+            for (let s of stations) {
+                let d = getDistance(lat, lon, s.lat, s.lon);
+                if (d < minDist) { minDist = d; nearest = s; }
+            }
+            return { station: nearest, distance: (minDist * 1000).toFixed(0) };
+        }
+
+        const resultDiv = document.getElementById("result");
+        function showResult(text) {
+            resultDiv.style.display = "block";
+            resultDiv.innerHTML = text;
+        }
+        function showLoading() {
+            resultDiv.style.display = "block";
+            resultDiv.innerHTML = '<div class="loader"></div><div>Определяем местоположение...</div>';
+        }
+
+        function getLocation(callback) {
+            if (!navigator.geolocation) {
+                callback(null, "❌ Геолокация не поддерживается");
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => callback(pos, null),
+                () => callback(null, "❌ Разрешите доступ к геолокации"),
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        document.getElementById("btnLost").onclick = () => {
+            showLoading();
+            getLocation((pos, error) => {
+                if (error) { showResult(error); return; }
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const nearest = findNearestStation(lat, lon);
+                let html = `<strong>🆘 ВАШЕ МЕСТОПОЛОЖЕНИЕ</strong><br><br>📍 ${lat.toFixed(5)}, ${lon.toFixed(5)}<br>`;
+                if (nearest.station) html += `🚇 Станция: ${nearest.station.name}<br>📏 ${nearest.distance} метров<br><br>`;
+                html += `<strong>ЧТО ДЕЛАТЬ:</strong><br>• Оставайся на месте<br>• Найди сотрудника метро<br>• Покажи ему экран`;
+                showResult(html);
+            });
+        };
+
+        document.getElementById("btnRoute").onclick = () => {
+            showLoading();
+            getLocation((pos, error) => {
+                if (error) { showResult(error); return; }
+                const nearest = findNearestStation(pos.coords.latitude, pos.coords.longitude);
+                if (!nearest.station) { showResult("Станция не найдена"); return; }
+                showResult(`<strong>🧭 МАРШРУТ</strong><br><br>🚇 Станция: ${nearest.station.name}<br><br>🚪 Выходы: ${nearest.station.exits}<br><br>1. Иди к указателю<br>2. Поднимись по эскалатору<br>3. Пройди турникеты<br>4. Ты на улице`);
+            });
+        };
+
+        document.getElementById("btnAssist").onclick = () => {
+            showLoading();
+            getLocation((pos, error) => {
+                if (error) { showResult(error); return; }
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const nearest = findNearestStation(lat, lon);
+                let html = `<strong>♿ ВЫЗОВ ПОМОЩИ</strong><br><br>✅ Служба уведомлена<br>📍 ${lat.toFixed(5)}, ${lon.toFixed(5)}<br>`;
+                if (nearest.station) html += `🚇 Станция: ${nearest.station.name}<br>`;
+                html += `<br>👨‍🦽 Оставайтесь на месте<br>📞 +7 (495) 539-54-54`;
+                showResult(html);
+            });
+        };
+    </script>
+</body>
+</html>
