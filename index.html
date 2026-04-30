@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>МетроПомощник — навигация для детей</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: #0a1f2e;
+            color: #f0f3f8;
+            padding: 16px;
+            min-height: 100vh;
+        }
+
+        .app {
+            max-width: 550px;
+            margin: 0 auto;
+            background: rgba(12, 25, 38, 0.95);
+            backdrop-filter: blur(4px);
+            border-radius: 40px;
+            padding: 22px 18px 30px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            text-align: center;
+            background: linear-gradient(135deg, #FFD966, #FFA559);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .sub {
+            text-align: center;
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-bottom: 24px;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            border: none;
+            padding: 16px 12px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #1e3a4d;
+            color: white;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 5px 0 #0b1c26;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #0b1c26;
+        }
+
+        .btn-lost { background: #c44536; box-shadow: 0 5px 0 #8a2e22; }
+        .btn-route { background: #2c6e9e; box-shadow: 0 5px 0 #1c4a6e; }
+        .btn-location { background: #6c3483; box-shadow: 0 5px 0 #4a235a; margin-bottom: 5px; }
+
+        .card {
+            background: rgba(0, 0, 0, 0.55);
+            border-radius: 28px;
+            padding: 18px;
+            margin: 16px 0;
+            border-left: 5px solid #ffb347;
+            display: none;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #ffb34760;
+            padding-bottom: 6px;
+        }
+
+        .steps {
+            padding-left: 20px;
+            margin: 12px 0;
+        }
+        .steps li {
+            margin: 8px 0;
+        }
+
+        .badge {
+            background: #0f2c3b;
+            padding: 10px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 8px 0;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,200,0.3);
+            border-radius: 50%;
+            border-top-color: #ffd966;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .chat-section {
+            margin-top: 20px;
+            background: #0a1a24;
+            border-radius: 28px;
+            padding: 12px;
+            border: 1px solid #2c5a6e;
+        }
+
+        .chat-messages {
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .msg {
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 90%;
+            word-wrap: break-word;
+            font-size: 0.85rem;
+        }
+
+        .msg-user {
+            background: #2c6e9e;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-ai {
+            background: #1e3a2f;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            color: #d4f1e6;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 40px;
+            border: none;
+            background: #1e2e3a;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .chat-send {
+            background: #ffb347;
+            border: none;
+            border-radius: 40px;
+            padding: 0 20px;
+            font-weight: bold;
+            color: #1a2a2a;
+            cursor: pointer;
+        }
+
+        .small-note {
+            font-size: 0.65rem;
+            text-align: center;
+            margin-top: 16px;
+            opacity: 0.6;
+        }
+        
+        .geo-warning {
+            background: #e74c3c30;
+            border: 1px solid #e74c3c;
+            border-radius: 20px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 0.8rem;
+            display: none;
+        }
+
+        /* Стили для модального окна выбора направления */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #0a1f2e;
+            border-radius: 40px;
+            padding: 24px;
+            max-width: 90%;
+            width: 400px;
+            border: 2px solid #ffb347;
+        }
+        .modal-content h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ffb347;
+        }
+        .modal-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            background: #2c6e9e;
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+        .modal-btn:active {
+            transform: scale(0.98);
+        }
+        .modal-close {
+            background: #c44536;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <h1>🚇 МетроПомощник</h1>
+    <div class="sub">навигация + ИИ-помощник | Московский метрополитен</div>
+
+    <div id="geoWarning" class="geo-warning">
+        ⚠️ Геолокация отключена. Нажмите кнопку ниже, чтобы разрешить доступ.
+    </div>
+
+    <div class="btn-group">
+        <button class="btn btn-location" id="requestLocationBtn">📍 РАЗРЕШИТЬ ГЕОЛОКАЦИЮ</button>
+        <button class="btn btn-lost" id="lostBtn">🔍 Я потерялся</button>
+        <button class="btn btn-route" id="orientBtn">🧭 Помочь с ориентированием</button>
+    </div>
+
+    <div id="resultCard" class="card">
+        <div class="card-title" id="resultIcon">📌</div>
+        <div id="resultText"></div>
+    </div>
+
+    <div class="chat-section">
+        <div style="font-weight:bold; margin-bottom: 6px;">🤖 ИИ-навигатор</div>
+        <div id="chatMessages" class="chat-messages">
+            <div class="msg msg-ai">👋 Привет! Я помогу тебе сориентироваться. Спроси: «как выйти?», «где переход?», «как дойти до вокзала?»</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Напиши вопрос...">
+            <button id="chatSendBtn" class="chat-send">➤</button>
+        </div>
+    </div>
+    <div class="small-note">📍 Работает через Wi-Fi метро. Сначала нажмите «РАЗРЕШИТЬ ГЕОЛОКАЦИЮ».</div>
+</div>
+
+<!-- Модальное окно для выбора направления -->
+<div id="directionModal" class="modal">
+    <div class="modal-content">
+        <h3>🗺️ Куда нужно дойти?</h3>
+        <div id="modalButtons"></div>
+        <button class="modal-btn modal-close" id="modalCloseBtn">❌ Закрыть</button>
+    </div>
+</div>
+
+<script>
+    // ========== БАЗА СТАНЦИЙ МЕТРО С ТОЧНЫМИ КООРДИНАТАМИ ==========
+    const stationsDB = [
+        // Кольцевая линия
+        { name: "Комсомольская", line: "Кольцевая", lat: 55.7753, lon: 37.6556, exits: ["Ленинградский вокзал", "Ярославский вокзал", "Казанский вокзал"], transitions: ["Сокольническая линия"], railwayStations: ["Ленинградский", "Ярославский", "Казанский"] },
+        { name: "Курская", line: "Кольцевая", lat: 55.7579, lon: 37.6580, exits: ["Курский вокзал", "ул. Земляной Вал"], transitions: ["Арбатско-Покровская", "Люблинско-Дмитровская"], railwayStations: ["Курский"] },
+        { name: "Таганская", line: "Кольцевая", lat: 55.7418, lon: 37.6723, exits: [], transitions: ["Таганско-Краснопресненская", "Калининская"], railwayStations: [] },
+        { name: "Павелецкая", line: "Кольцевая", lat: 55.7308, lon: 37.6376, exits: ["Павелецкий вокзал"], transitions: ["Замоскворецкая"], railwayStations: ["Павелецкий"] },
+        { name: "Добрынинская", line: "Кольцевая", lat: 55.7283, lon: 37.6239, exits: [], transitions: ["Серпуховско-Тимирязевская"], railwayStations: [] },
+        { name: "Октябрьская", line: "Кольцевая", lat: 55.7303, lon: 37.6114, exits: [], transitions: ["Калужско-Рижская"], railwayStations: [] },
+        { name: "Парк культуры", line: "Кольцевая", lat: 55.7356, lon: 37.5914, exits: [], transitions: ["Сокольническая"], railwayStations: [] },
+        { name: "Киевская", line: "Кольцевая", lat: 55.7436, lon: 37.5665, exits: ["Киевский вокзал"], transitions: ["Арбатско-Покровская", "Филевская"], railwayStations: ["Киевский"] },
+        { name: "Краснопресненская", line: "Кольцевая", lat: 55.7614, lon: 37.5771, exits: [], transitions: ["Таганско-Краснопресненская"], railwayStations: [] },
+        { name: "Белорусская", line: "Кольцевая", lat: 55.7766, lon: 37.5832, exits: ["Белорусский вокзал"], transitions: ["Замоскворецкая"], railwayStations: ["Белорусский"] },
+        { name: "Новослободская", line: "Кольцевая", lat: 55.7733, lon: 37.6022, exits: [], transitions: ["Серпуховско-Тимирязевская"], railwayStations: [] },
+        { name: "Проспект Мира", line: "Кольцевая", lat: 55.7798, lon: 37.6323, exits: [], transitions: ["Калужско-Рижская"], railwayStations: [] },
+        
+        // Сокольническая линия
+        { name: "Сокольники", line: "Сокольническая", lat: 55.7890, lon: 37.6799, exits: [], transitions: ["Большая кольцевая"], railwayStations: [] },
+        { name: "Красносельская", line: "Сокольническая", lat: 55.7798, lon: 37.6664, exits: [], transitions: [], railwayStations: [] },
+        { name: "Красные Ворота", line: "Сокольническая", lat: 55.7689, lon: 37.6489, exits: [], transitions: [], railwayStations: [] },
+        { name: "Чистые пруды", line: "Сокольническая", lat: 55.7652, lon: 37.6390, exits: [], transitions: ["Тургеневская", "Сретенский бульвар"], railwayStations: [] },
+        { name: "Лубянка", line: "Сокольническая", lat: 55.7602, lon: 37.6256, exits: [], transitions: ["Кузнецкий мост"], railwayStations: [] },
+        { name: "Охотный Ряд", line: "Сокольническая", lat: 55.7577, lon: 37.6155, exits: ["Манежная площадь", "Большой театр"], transitions: ["Театральная", "Площадь Революции"], railwayStations: [] },
+        { name: "Библиотека им. Ленина", line: "Сокольническая", lat: 55.7514, lon: 37.6092, exits: [], transitions: ["Арбатская", "Александровский сад", "Боровицкая"], railwayStations: [] },
+        { name: "Кропоткинская", line: "Сокольническая", lat: 55.7453, lon: 37.6034, exits: ["Храм Христа Спасителя"], transitions: [], railwayStations: [] },
+        { name: "Парк культуры", line: "Сокольническая", lat: 55.7352, lon: 37.5900, exits: [], transitions: ["Кольцевая"], railwayStations: [] },
+        
+        // Арбатско-Покровская линия (до Партизанской)
+        { name: "Партизанская", line: "Арбатско-Покровская", lat: 55.7885, lon: 37.7508, exits: ["Выход к Измайловскому парку"], transitions: [], railwayStations: [] },
+        { name: "Измайловская", line: "Арбатско-Покровская", lat: 55.7879, lon: 37.7614, exits: [], transitions: [], railwayStations: [] },
+        { name: "Первомайская", line: "Арбатско-Покровская", lat: 55.7950, lon: 37.7784, exits: [], transitions: [], railwayStations: [] },
+        { name: "Щёлковская", line: "Арбатско-Покровская", lat: 55.8100, lon: 37.7986, exits: [], transitions: [], railwayStations: [] },
+        { name: "Курская", line: "Арбатско-Покровская", lat: 55.7579, lon: 37.6580, exits: ["Курский вокзал"], transitions: ["Кольцевая", "Люблинско-Дмитровская"], railwayStations: ["Курский"] },
+        { name: "Площадь Революции", line: "Арбатско-Покровская", lat: 55.7568, lon: 37.6213, exits: ["Красная площадь"], transitions: ["Охотный Ряд", "Театральная"], railwayStations: [] },
+        { name: "Арбатская", line: "Арбатско-Покровская", lat: 55.7518, lon: 37.6017, exits: [], transitions: ["Библиотека им. Ленина", "Александровский сад"], railwayStations: [] },
+        { name: "Смоленская", line: "Арбатско-Покровская", lat: 55.7471, lon: 37.5820, exits: [], transitions: [], railwayStations: [] },
+        { name: "Киевская", line: "Арбатско-Покровская", lat: 55.7436, lon: 37.5665, exits: ["Киевский вокзал"], transitions: ["Кольцевая", "Филевская"], railwayStations: ["Киевский"] },
+        
+        // Замоскворецкая линия
+        { name: "Павелецкая", line: "Замоскворецкая", lat: 55.7305, lon: 37.6370, exits: ["Павелецкий вокзал"], transitions: ["Кольцевая"], railwayStations: ["Павелецкий"] },
+        { name: "Новокузнецкая", line: "Замоскворецкая", lat: 55.7418, lon: 37.6293, exits: [], transitions: ["Павелецкая", "Третьяковская"], railwayStations: [] },
+        { name: "Театральная", line: "Замоскворецкая", lat: 55.7572, lon: 37.6185, exits: [], transitions: ["Охотный Ряд", "Площадь Революции"], railwayStations: [] },
+        { name: "Тверская", line: "Замоскворецкая", lat: 55.7643, lon: 37.6061, exits: [], transitions: ["Пушкинская", "Чеховская"], railwayStations: [] },
+        { name: "Маяковская", line: "Замоскворецкая", lat: 55.7702, lon: 37.5959, exits: ["Тверская улица"], transitions: ["Белорусская"], railwayStations: [] },
+        { name: "Белорусская", line: "Замоскворецкая", lat: 55.7766, lon: 37.5832, exits: ["Белорусский вокзал"], transitions: ["Кольцевая"], railwayStations: ["Белорусский"] },
+        
+        // Таганско-Краснопресненская линия
+        { name: "Таганская", line: "Таганско-Краснопресненская", lat: 55.7418, lon: 37.6720, exits: [], transitions: ["Кольцевая", "Марксистская"], railwayStations: [] },
+        { name: "Китай-город", line: "Таганско-Краснопресненская", lat: 55.7542, lon: 37.6336, exits: [], transitions: [], railwayStations: [] },
+        { name: "Кузнецкий мост", line: "Таганско-Краснопресненская", lat: 55.7603, lon: 37.6250, exits: [], transitions: ["Лубянка"], railwayStations: [] },
+        { name: "Пушкинская", line: "Таганско-Краснопресненская", lat: 55.7653, lon: 37.6067, exits: [], transitions: ["Тверская", "Чеховская"], railwayStations: [] },
+        { name: "Баррикадная", line: "Таганско-Краснопресненская", lat: 55.7614, lon: 37.5819, exits: [], transitions: ["Краснопресненская"], railwayStations: [] },
+        
+        // Люблинско-Дмитровская линия
+        { name: "Чкаловская", line: "Люблинско-Дмитровская", lat: 55.7565, lon: 37.6586, exits: [], transitions: ["Курская"], railwayStations: [] },
+        { name: "Сретенский бульвар", line: "Люблинско-Дмитровская", lat: 55.7661, lon: 37.6372, exits: [], transitions: ["Тургеневская", "Чистые пруды"], railwayStations: [] },
+        { name: "Трубная", line: "Люблинско-Дмитровская", lat: 55.7686, lon: 37.6214, exits: [], transitions: ["Цветной бульвар"], railwayStations: [] },
+        
+        // Калужско-Рижская линия
+        { name: "Тургеневская", line: "Калужско-Рижская", lat: 55.7658, lon: 37.6369, exits: [], transitions: ["Сретенский бульвар", "Чистые пруды"], railwayStations: [] },
+        { name: "Китай-город", line: "Калужско-Рижская", lat: 55.7547, lon: 37.6333, exits: [], transitions: ["Таганско-Краснопресненская"], railwayStations: [] },
+        { name: "Третьяковская", line: "Калужско-Рижская", lat: 55.7411, lon: 37.6286, exits: [], transitions: ["Новокузнецкая"], railwayStations: [] },
+        { name: "Октябрьская", line: "Калужско-Рижская", lat: 55.7306, lon: 37.6111, exits: [], transitions: ["Кольцевая"], railwayStations: [] }
+    ];
+
+    let hasLocationPermission = false;
+    let currentStationContext = null;
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    function findNearestStation(lat, lon) {
+        let nearest = null, minDist = Infinity;
+        let second = null, secondDist = Infinity;
+        
+        for (let st of stationsDB) {
+            const d = getDistance(lat, lon, st.lat, st.lon);
+            if (d < minDist) {
+                secondDist = minDist;
+                second = nearest;
+                minDist = d;
+                nearest = st;
+            } else if (d < secondDist) {
+                secondDist = d;
+                second = st;
+            }
+        }
+        
+        // Если вторая станция очень близко (меньше 500 метров) — возможно, нужна проверка
+        const isUncertain = (secondDist < 0.5 && minDist > 0.2);
+        
+        return { station: nearest, distanceKm: minDist, uncertain: isUncertain, secondStation: second };
+    }
+
+    function getCurrentPosition() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error("Геолокация не поддерживается"));
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 15000
+            });
+        });
+    }
+
+    async function updateStationContext() {
+        if (!hasLocationPermission) return;
+        try {
+            const pos = await getCurrentPosition();
+            const nearest = findNearestStation(pos.coords.latitude, pos.coords.longitude);
+            currentStationContext = nearest.station;
+            document.getElementById("geoWarning").style.display = "none";
+        } catch(e) {
+            currentStationContext = null;
+            document.getElementById("geoWarning").style.display = "block";
+        }
+    }
+
+    async function requestLocation() {
+        const warningDiv = document.getElementById("geoWarning");
+        try {
+            const pos = await getCurrentPosition();
+            hasLocationPermission = true;
+            const nearest = findNearestStation(pos.coords.latitude, pos.coords.longitude);
+            currentStationContext = nearest.station;
+            warningDiv.style.display = "none";
+            showResult("✅", "Геолокация включена", `<div>📍 Доступ к местоположению разрешён! Теперь можно пользоваться кнопками.</div>`);
+        } catch(e) {
+            hasLocationPermission = false;
+            warningDiv.style.display = "block";
+            showResult("⚠️", "Ошибка", `<div>❌ Не удалось получить доступ к геолокации. Проверьте настройки браузера.</div>`);
+        }
+    }
+
+    const resultCard = document.getElementById("resultCard");
+    const resultIconSpan = document.getElementById("resultIcon");
+    const resultTextDiv = document.getElementById("resultText");
+
+    function showResult(icon, title, contentHtml) {
+        resultCard.style.display = "block";
+        resultIconSpan.innerHTML = icon;
+        resultTextDiv.innerHTML = `<div style="font-weight:bold; margin-bottom:8px;">${title}</div>${contentHtml}`;
+        resultCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function showLoader(icon, msg) {
+        resultCard.style.display = "block";
+        resultIconSpan.innerHTML = icon;
+        resultTextDiv.innerHTML = `<div class="loader" style="margin:10px auto;"></div><div style="margin-top:6px;">${msg}</div>`;
+    }
+
+    // Кнопка 1: Я потерялся — с уточнением станции
+    async function handleLost() {
+        if (!hasLocationPermission) {
+            showResult("⚠️", "Нет доступа к геолокации", `<div>Сначала нажмите кнопку «РАЗРЕШИТЬ ГЕОЛОКАЦИЮ» вверху экрана.</div>`);
+            return;
+        }
+        showLoader("🔍", "Определяем ваше местоположение...");
+        try {
+            const pos = await getCurrentPosition();
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            const result = findNearestStation(lat, lon);
+            if (!result.station) throw new Error("Станция не найдена");
+            const st = result.station;
+            const dist = (result.distanceKm * 1000).toFixed(0);
+            
+            let html = `<div><strong>📍 ВАШЕ МЕСТОПОЛОЖЕНИЕ:</strong><br>`;
+            
+            if (result.uncertain && result.secondStation) {
+                html += `<div class="badge" style="background:#e67e22; color:white;">⚠️ СИГНАЛ НЕТОЧНЫЙ</div>`;
+                html += `<p>Вы находитесь <strong>рядом со станцией «${st.name}»</strong>.<br>`;
+                html += `Но возможно вы на станции «${result.secondStation.name}».</p>`;
+                html += `<p><strong>🔍 Уточните своё местоположение:</strong><br>`;
+                html += `• Посмотрите на табличку с названием станции на стене<br>`;
+                html += `• Послушайте объявление в поезде или в вестибюле<br>`;
+                html += `• Спросите у прохожего или сотрудника метро</p>`;
+            } else {
+                html += `<p>Вы находитесь на станции: <strong style="color:#FFD966">${st.name}</strong></p>`;
+                html += `<p>Линия: ${st.line}<br>Расстояние: примерно ${dist} метров</p>`;
+                if (dist > 80) {
+                    html += `<div class="badge">⚠️ Сигнал не очень точный. Оглянитесь по сторонам — вы точно на этой станции?</div>`;
+                }
+            }
+            
+            html += `<div class="badge">🗺️ Ваши координаты: ${lat.toFixed(4)}, ${lon.toFixed(4)}</div>`;
+            
+            // Инструкция по поиску сотрудника
+            html += `<div><strong>👮 Что делать дальше:</strong><br>`;
+            html += `• Оставайся на месте или отойди к стене<br>`;
+            html += `• Найди сотрудника в синей форме<br>`;
+            html += `• Подойди к нему и покажи экран телефона<br>`;
+            html += `• Не уходи с места — родители тебя найдут</div>`;
+            
+            showResult("🆘 ПОМОЩЬ", "Не паникуй! Я помогу.", html);
+        } catch(e) {
+            showResult("⚠️", "Ошибка", `<div>❌ ${e.message || "Не удалось определить геолокацию. Проверьте доступ к геолокации в настройках телефона."}</div>`);
+        }
+    }
+
+    // Модальное окно для выбора направления
+    function showDirectionModal(destinations, callback) {
+        const modal = document.getElementById("directionModal");
+        const buttonsDiv = document.getElementById("modalButtons");
+        buttonsDiv.innerHTML = "";
+        
+        destinations.forEach((dest, index) => {
+            const btn = document.createElement("button");
+            btn.className = "modal-btn";
+            let emoji = dest.type === "Выход" ? "🚪" : (dest.type === "Переход на станцию" ? "🔄" : "🚉");
+            btn.innerText = `${emoji} ${dest.type}: ${dest.name}`;
+            btn.onclick = () => {
+                modal.style.display = "none";
+                callback(dest);
+            };
+            buttonsDiv.appendChild(btn);
+        });
+        
+        modal.style.display = "flex";
+        
+        document.getElementById("modalCloseBtn").onclick = () => {
+            modal.style.display = "none";
+            callback(null);
+        };
+    }
+
+    // Кнопка 2: Помочь с ориентированием — выбор по кнопкам
+    async function handleOrient() {
+        if (!hasLocationPermission) {
+            showResult("⚠️", "Нет доступа к геолокации", `<div>Сначала нажмите кнопку «РАЗРЕШИТЬ ГЕОЛОКАЦИЮ» вверху экрана.</div>`);
+            return;
+        }
+        showLoader("🧭", "Определяем местоположение...");
+        try {
+            const pos = await getCurrentPosition();
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            const result = findNearestStation(lat, lon);
+            if (!result.station) throw new Error("Станция не найдена");
+            const st = result.station;
+            
+            // Если сигнал неточный — предупредим
+            if (result.uncertain && result.secondStation) {
+                showResult("⚠️", "Сигнал неточный", `<div>Не могу точно определить вашу станцию. Подойдите к табличке с названием станции и нажмите кнопку ещё раз.</div>`);
+                return;
+            }
+            
+            let destinations = [];
+            if (st.exits && st.exits.length) destinations.push(...st.exits.map(e => ({ type: "Выход", name: e })));
+            if (st.transitions && st.transitions.length) destinations.push(...st.transitions.map(t => ({ type: "Переход на станцию", name: t })));
+            if (st.railwayStations && st.railwayStations.length) destinations.push(...st.railwayStations.map(r => ({ type: "Вокзал", name: r + " вокзал" })));
+            if (destinations.length === 0) destinations.push({ type: "Выход", name: "Центральный выход в город" });
+            
+            showDirectionModal(destinations, (target) => {
+                if (!target) return;
+                
+                let stepsHtml = "";
+                if (target.type === "Выход") {
+                    stepsHtml = `<ul class="steps"><li>🚶 Иди к указателю «${target.name}»</li><li>⬆️ Поднимись по эскалатору или лестнице</li><li>🚪 Пройди через турникеты</li><li>✅ Ты на улице</li></ul>`;
+                } else if (target.type === "Переход на станцию") {
+                    stepsHtml = `<ul class="steps"><li>🔄 Следуй по переходу на станцию «${target.name}»</li><li>⏱️ В пути 2-5 минут, ориентируйся по указателям</li><li>✅ Ты на нужной станции</li></ul>`;
+                } else if (target.type === "Вокзал") {
+                    stepsHtml = `<ul class="steps"><li>🚉 Ищи указатели к ${target.name}</li><li>➡️ Выход к вокзалу будет прямо</li><li>🏁 Расстояние 50-300 метров</li></ul>`;
+                } else {
+                    stepsHtml = `<div>➡️ Пройди к ориентиру «${target.name}», используй указатели или спроси у сотрудника.</div>`;
+                }
+                
+                let routeText = `<div><strong>Откуда:</strong> ${st.name}<br><strong>Куда:</strong> ${target.type} «${target.name}»</div>${stepsHtml}`;
+                showResult("🗺️", "Маршрут построен", routeText);
+            });
+        } catch(e) {
+            showResult("⚠️", "Ошибка", `<div>❌ ${e.message || "Не удалось построить маршрут"}</div>`);
+        }
+    }
+
+    function aiResponse(question) {
+        const q = question.toLowerCase();
+        if (!currentStationContext) {
+            return "🌐 Не могу определить вашу станцию. Нажмите кнопку «РАЗРЕШИТЬ ГЕОЛОКАЦИЮ» вверху экрана.";
+        }
+        const st = currentStationContext;
+        if (q.includes("выход") || q.includes("выйти") || q.includes("на улицу")) {
+            let exits = st.exits && st.exits.length ? st.exits.slice(0,2).join(" или ") : "главный вестибюль";
+            return `🚪 Вы на станции «${st.name}». Идите к указателям «${exits}». Поднимитесь по эскалатору — вы на улице.`;
+        }
+        if (q.includes("переход") || q.includes("перейти") || q.includes("другую линию")) {
+            let trans = st.transitions && st.transitions.length ? st.transitions.join(", ") : "рядом нет прямого перехода";
+            return `🔄 Со станции «${st.name}» можно перейти на: ${trans}. Ищите оранжевые указатели.`;
+        }
+        if (q.includes("вокзал") || q.includes("поезд")) {
+            if (st.railwayStations && st.railwayStations.length) {
+                return `🚉 У станции «${st.name}» есть выход к ${st.railwayStations.join(", ")} вокзалу. Следуйте указателям с изображением поезда.`;
+            } else {
+                return `🗺️ На станции «${st.name}» нет прямого выхода к вокзалу. Выйдите в город и посмотрите навигатор.`;
+            }
+        }
+        return `🤖 Вы на станции «${st.name}» (${st.line}). Спросите меня: «как выйти?», «где переход?», «как пройти к вокзалу?».`;
+    }
+
+    function addMessage(text, isUser = false) {
+        const container = document.getElementById("chatMessages");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `msg ${isUser ? 'msg-user' : 'msg-ai'}`;
+        msgDiv.innerText = text;
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+        if (container.children.length > 20) container.removeChild(container.firstChild);
+    }
+
+    async function onChatSend() {
+        const input = document.getElementById("chatInput");
+        const question = input.value.trim();
+        if (!question) return;
+        addMessage(question, true);
+        input.value = "";
+        if (!hasLocationPermission) {
+            addMessage("🌐 Сначала нажмите кнопку «РАЗРЕШИТЬ ГЕОЛОКАЦИЮ» вверху экрана.", false);
+            return;
+        }
+        await updateStationContext();
+        const answer = aiResponse(question);
+        addMessage(answer, false);
+    }
+
+    document.getElementById("requestLocationBtn").addEventListener("click", requestLocation);
+    document.getElementById("lostBtn").addEventListener("click", handleLost);
+    document.getElementById("orientBtn").addEventListener("click", handleOrient);
+    document.getElementById("chatSendBtn").addEventListener("click", onChatSend);
+    document.getElementById("chatInput").addEventListener("keypress", (e) => { if(e.key === "Enter") onChatSend(); });
+</script>
+</body>
+</html>
